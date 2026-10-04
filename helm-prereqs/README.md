@@ -151,6 +151,7 @@ The tables below summarize the keys that must be set per site.
 |-----|---------|-------------|-------------|
 | `siteName` | `"TMP_SITE"` | **Yes** | Site identifier, injected into postgres pods as `TMP_SITE` |
 | `imagePullSecrets.ngcNicoPull` | `""` | No (auto) | Pull secret for NICo Core images. Set automatically by `setup.sh` from `REGISTRY_PULL_SECRET` when provided. |
+| `vault.configJob.caSecretName` | `""` | No | Secret in `namespace` containing `ca.crt`. When set, the bootstrap Job requires HTTPS and verifies Vault's certificate and hostname. Missing or invalid trust material fails without an insecure fallback. Empty keeps the existing skip-verification behavior. |
 | `vault.nicoCliClientRole.enabled` | `true` | No | Create the Vault PKI role for short-lived NICo CLI client certificates. This only defines the certificate profile; issuance access must be granted separately. |
 | `vault.nicoCliClientRole.name` | `"nico-cli-client"` | No | Vault role name, and the certificate `SubjectOU` when `ou` is empty. |
 | `vault.nicoCliClientRole.ou` | `""` | No | Certificate `SubjectOU` stamped on issued CLI client certs; empty means use `name`. nico-api maps the OU to the ExternalUser group, but admin-CLI authorization is gated by the issuer CN (`auth.additionalIssuerCns`), not the OU value. Do not set `"Invalid"`. |
@@ -160,6 +161,13 @@ The tables below summarize the keys that must be set per site.
 | `postgresql.storageClass` | `"local-path-persistent"` | No | StorageClass for the nico-prereqs PostgreSQL PVCs. Override through Helm values when using a non-local StorageClass. |
 | `temporal.useHaPostgres` | `false` | No | Move Temporal's default/visibility stores onto `nico-pg-cluster` instead of `postgres.postgres`. Named `useHaPostgres`, not `enabled`, because it only moves the database — it doesn't gate whether Temporal is deployed. See [Consolidating Temporal/Keycloak onto nico-pg-cluster](#consolidating-temporalkeycloak-onto-nico-pg-cluster). |
 | `keycloak.useHaPostgres` | `false` | No | Move Keycloak's database onto `nico-pg-cluster` instead of `postgres.postgres`. Distinct from `nico-rest-api.config.keycloak.enabled` in `values/nico-rest.yaml`, which controls whether Keycloak is deployed at all — this toggle provisions the database regardless, so it just goes unused if Keycloak itself isn't deployed. |
+
+With `vault.configJob.caSecretName` set, the Job also uses kubectl's verified
+in-cluster connection to read `site-root` from `certManagerNamespace`. It reuses
+`vault.configJob.kubectlImage` and the existing ServiceAccount permissions. The
+CA Secret must exist before the Job starts; do not depend on this Job to create
+its own trust bundle. This option changes only the bootstrap Job, not other
+Vault clients or the issuer's `caBundleSecretRef`.
 
 ### `values/nico-core.yaml`
 
