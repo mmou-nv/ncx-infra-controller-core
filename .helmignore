@@ -1,0 +1,16 @@
+# Patterns to ignore when loading/packaging the nico-prereqs chart (chart: ".").
+# Keep non-chart artifacts out of helm — notably the DPF source clone, which
+# setup.sh --install-dpf caches at .dpf-src/ and whose large .git pack files
+# otherwise exceed helm's per-file size limit.
+.dpf-src/
+# Same for the nv-rms source clone cached by setup.sh --install-rms.
+.rms-src/
+nv-rms/
+.git/
+.gitignore
+*.bak
+values/*.dpf.bak
+# Common editor/VCS noise
+*.swp
+*.tmp
+.DS_Store
