@@ -231,8 +231,8 @@ spec:
 
               # ---- Enable PKI engine ----
               echo "Enabling PKI engine at {{ .Values.vault.pkiMount }}/..."
-              vault secrets enable -path={{ .Values.vault.pkiMount }} pki 2>/dev/null || true
-              vault secrets tune -max-lease-ttl=87600h {{ .Values.vault.pkiMount }}
+              vault write sys/mounts/{{ .Values.vault.pkiMount }} type=pki 2>/dev/null || true
+              vault write sys/mounts/{{ .Values.vault.pkiMount }}/tune max_lease_ttl=87600h
 
               # ---- Import CA bundle ----
               echo "Importing site-root CA into Vault PKI..."
@@ -270,7 +270,7 @@ spec:
 
               # ---- Enable K8s auth ----
               echo "Configuring Kubernetes auth..."
-              vault auth enable kubernetes 2>/dev/null || true
+              vault write sys/auth/kubernetes type=kubernetes 2>/dev/null || true
               vault write auth/kubernetes/config \
                 kubernetes_host="https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}"
 
@@ -363,7 +363,7 @@ spec:
 
               # ---- KV v2 + AppRole ----
               echo "Enabling KV v2 at {{ .Values.vault.kvMount }}/..."
-              vault secrets enable -path={{ .Values.vault.kvMount }} kv-v2 2>/dev/null || true
+              printf '%s' '{"type":"kv","options":{"version":"2"}}' | vault write sys/mounts/{{ .Values.vault.kvMount }} - 2>/dev/null || true
 
               {{- range .Values.vault.kvSeeds }}
               echo "Seeding {{ $.Values.vault.kvMount }}/{{ .path }}..."
@@ -373,7 +373,7 @@ spec:
               {{- end }}
 
               echo "Enabling AppRole auth..."
-              vault auth enable approle 2>/dev/null || true
+              vault write sys/auth/approle type=approle 2>/dev/null || true
 
               vault write auth/approle/role/nico \
                 token_policies=nico-vault-policy \
